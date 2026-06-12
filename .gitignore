@@ -1,0 +1,23 @@
+# 环境变量 / 密钥
+.env
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Chrome 调试
+.chrome-cdp-profile/
+.chrome-check-profile/
+
+# 系统文件
+Thumbs.db
+.DS_Store
