@@ -6,6 +6,8 @@ from app import (
     format_profile_for_display,
     get_default_skills,
 )
+from services.matcher import MatchResult
+from ui.presenters import build_match_table_rows, build_top_match_insights
 
 
 def test_init_session_state_sets_defaults():
@@ -67,3 +69,44 @@ def test_get_default_skills_returns_list():
     assert isinstance(skills, list)
     assert len(skills) > 0
     assert "Python" in skills
+
+
+def test_build_match_table_rows_formats_recommendations():
+    """验证匹配结果可转换为表格行。"""
+    result = MatchResult(
+        job={
+            "title": "后端开发工程师",
+            "company": "测试公司",
+            "location": "北京",
+            "salary_range": "20K-30K",
+        },
+        score=82.4,
+        skill_match={"matched_skills": ["熟悉 Java"], "missing_skills": ["了解消息队列"]},
+        recommendation_level="强匹配",
+    )
+
+    rows = build_match_table_rows([result])
+    assert rows[0]["岗位"] == "后端开发工程师"
+    assert rows[0]["匹配度"] == "82.4"
+    assert rows[0]["推荐档"] == "强匹配"
+    assert rows[0]["关键缺口"] == "了解消息队列"
+
+
+def test_build_top_match_insights_extracts_reasoning():
+    """验证首选岗位洞察包含解释字段。"""
+    result = MatchResult(
+        job={"title": "数据分析师", "company": "测试公司"},
+        score=74.0,
+        skill_match={"matched_skills": ["SQL"], "missing_skills": ["Tableau"]},
+        education_match={"match_level": "exact"},
+        major_match={"is_relevant": True},
+        city_match={"match_level": "open"},
+        recommendation_level="稳妥匹配",
+        reasons=["命中 1 条岗位技能要求", "学历满足岗位门槛"],
+    )
+
+    insights = build_top_match_insights(result)
+    assert insights["title"] == "数据分析师"
+    assert insights["score"] == "74.0"
+    assert insights["major_relevant"] is True
+    assert "学历满足岗位门槛" in insights["reasons"]

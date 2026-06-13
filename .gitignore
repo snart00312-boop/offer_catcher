@@ -18,6 +18,9 @@ __pycache__/
 .chrome-cdp-profile/
 .chrome-check-profile/
 
+# 本地烟测日志
+streamlit-*.log
+
 # 系统文件
 Thumbs.db
 .DS_Store

@@ -12,6 +12,7 @@ import streamlit as st
 from data.loader import load_skills
 from services.matcher import match_jobs
 from services.ai_service import chat_with_ai
+from ui.presenters import build_match_table_rows, build_top_match_insights
 
 
 # ─── 页面配置 ──────────────────────────────────────
@@ -254,6 +255,76 @@ def load_css():
         color: var(--ink);
         line-height: 1.8;
     }
+    .match-board {
+        margin: 1rem 0 0.9rem;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 0.38fr);
+        gap: 0.85rem;
+        align-items: stretch;
+    }
+    .top-match-panel,
+    .signal-panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 1rem;
+        box-shadow: 0 12px 28px rgba(16, 24, 40, 0.06);
+    }
+    .top-match-panel h3,
+    .signal-panel h3 {
+        margin: 0 0 0.35rem;
+        color: var(--ink);
+        font-size: 1rem;
+        font-weight: 760;
+    }
+    .score-line {
+        display: flex;
+        align-items: baseline;
+        gap: 0.55rem;
+        margin: 0.15rem 0 0.5rem;
+    }
+    .score-value {
+        color: var(--accent-dark);
+        font-size: 2rem;
+        font-weight: 820;
+        line-height: 1;
+    }
+    .score-label {
+        color: var(--muted);
+        font-size: 0.83rem;
+        font-weight: 650;
+    }
+    .reason-list {
+        margin: 0.55rem 0 0;
+        padding-left: 1.05rem;
+        color: #344054;
+        font-size: 0.88rem;
+        line-height: 1.65;
+    }
+    .signal-stack {
+        display: grid;
+        gap: 0.42rem;
+        margin-top: 0.55rem;
+    }
+    .signal-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.7rem;
+        border-bottom: 1px solid #edf2f7;
+        padding-bottom: 0.4rem;
+        color: var(--muted);
+        font-size: 0.84rem;
+    }
+    .signal-row strong {
+        color: var(--ink);
+        text-align: right;
+    }
+    .match-note {
+        margin: 0.4rem 0 0.8rem;
+        color: var(--muted);
+        font-size: 0.84rem;
+        line-height: 1.55;
+    }
     .summary-chip,
     .skill-chip {
         display: inline-flex;
@@ -366,6 +437,9 @@ def load_css():
         }
         div[data-testid="stForm"] {
             padding: 1rem;
+        }
+        .match-board {
+            grid-template-columns: 1fr;
         }
     }
 </style>"""
@@ -557,7 +631,7 @@ def render_form_page():
         st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
 
         # 提交按钮
-        submitted = st.form_submit_button("🚀 开始匹配", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("🚀 开始匹配", type="primary", width="stretch")
 
     if submitted:
         # 表单验证
@@ -642,12 +716,14 @@ def render_chat_page():
         unsafe_allow_html=True,
     )
 
+    render_match_overview(matched_jobs)
+
     st.markdown(
         """
         <section class="chat-heading">
             <div>
-                <h2>岗位推荐与追问</h2>
-                <p>AI 会基于当前资料解释推荐理由，你也可以继续追问面试重点、补短板方向或简历表达。</p>
+                <h2>AI 深入解读</h2>
+                <p>上方是确定性匹配结果；这里继续用 HR 视角解释面试重点、补短板方向或简历表达。</p>
             </div>
         </section>
         """,
@@ -692,6 +768,43 @@ def render_chat_page():
     st.markdown('<div class="footer">Offer捕手 · AI 驱动求职助手</div>', unsafe_allow_html=True)
 
 
+def render_match_overview(matched_jobs: list):
+    """渲染可解释岗位推荐概览。"""
+    if not matched_jobs:
+        st.info("暂无匹配结果，请返回修改资料后重新匹配。")
+        return
+
+    top = build_top_match_insights(matched_jobs[0])
+    reasons = "".join(f"<li>{html.escape(reason)}</li>" for reason in top["reasons"])
+    matched_skill_text = "、".join(top["matched_skills"][:3]) or "待补充"
+    missing_skill_text = "、".join(top["missing_skills"][:3]) or "暂无明显缺口"
+    st.markdown(
+        f"""
+        <section class="match-board">
+            <div class="top-match-panel">
+                <h3>{html.escape(top['title'])}</h3>
+                <p class="match-note">{html.escape(top['company'])} · {html.escape(top['level'])}</p>
+                <div class="score-line"><span class="score-value">{top['score']}</span><span class="score-label">综合匹配度</span></div>
+                <ul class="reason-list">{reasons}</ul>
+            </div>
+            <div class="signal-panel">
+                <h3>关键判断</h3>
+                <div class="signal-stack">
+                    <div class="signal-row"><span>命中技能</span><strong>{html.escape(matched_skill_text)}</strong></div>
+                    <div class="signal-row"><span>关键缺口</span><strong>{html.escape(missing_skill_text)}</strong></div>
+                    <div class="signal-row"><span>学历状态</span><strong>{html.escape(top['education_status'])}</strong></div>
+                    <div class="signal-row"><span>城市偏好</span><strong>{html.escape(top['city_status'])}</strong></div>
+                </div>
+            </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    rows = build_match_table_rows(matched_jobs, limit=5)
+    st.dataframe(rows, hide_index=True, width="stretch")
+
+
 def _handle_first_matching(profile: dict, matched_jobs: list):
     """首次进入聊天页时自动触发岗位匹配推荐"""
     with st.chat_message("assistant"):
@@ -722,15 +835,15 @@ def render_action_buttons(profile: dict, matched_jobs: list):
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("📊 简历匹配度分析", use_container_width=True):
+        if st.button("📊 简历匹配度分析", width="stretch"):
             _handle_analysis(profile, matched_jobs)
 
     with col2:
-        if st.button("✏️ 简历优化建议", use_container_width=True):
+        if st.button("✏️ 简历优化建议", width="stretch"):
             _handle_optimization(profile, matched_jobs)
 
     with col3:
-        if st.button("🔄 换一批推荐", use_container_width=True):
+        if st.button("🔄 换一批推荐", width="stretch"):
             st.session_state["chat_history"] = []
             st.rerun()
 

@@ -13,6 +13,7 @@ _DEFAULT_MODEL = "qwen3.5-omni-plus-2026-03-15"
 _DOTENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 _AI_SECRET_SECTIONS = ("ai", "bailian", "dashscope", "glm", "zhipuai")
 _OPENAI_SECRET_SECTIONS = ("openai",)
+_DISABLE_STREAMLIT_SECRETS_ENV = "OFFER_CATCHER_DISABLE_STREAMLIT_SECRETS"
 _SECRET_LIKE_PATTERN = re.compile(r"(?<![A-Za-z0-9_-])[A-Za-z0-9][A-Za-z0-9._-]{19,}(?![A-Za-z0-9_-])")
 
 
@@ -85,6 +86,9 @@ def _get_dotenv_value(*names: str) -> str:
 
 def _get_streamlit_secret_value(names: tuple[str, ...], sections: tuple[str, ...]) -> str:
     """读取 Streamlit secrets，兼容顶层变量和分组变量。"""
+    if os.environ.get(_DISABLE_STREAMLIT_SECRETS_ENV) == "1":
+        return ""
+
     try:
         import streamlit as st
 

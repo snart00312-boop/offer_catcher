@@ -7,6 +7,7 @@ import pytest
 from services.ai_service import (
     _DEFAULT_BASE_URL,
     _DEFAULT_MODEL,
+    _DISABLE_STREAMLIT_SECRETS_ENV,
     _get_ai_config,
     _get_dotenv_value,
     _get_env_value,
@@ -50,6 +51,7 @@ def clear_ai_env(monkeypatch):
     for name in AI_ENV_NAMES:
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr("services.ai_service._DOTENV_PATH", Path("__missing_test.env"))
+    monkeypatch.setenv(_DISABLE_STREAMLIT_SECRETS_ENV, "1")
 
 
 def test_build_matching_prompt_contains_student_info():
@@ -171,9 +173,20 @@ def test_glm_config_does_not_reuse_deepseek_key(monkeypatch):
     assert config["model"] == "qwen3.5-omni-plus-2026-03-15"
 
 
+def test_disabled_streamlit_secrets_are_ignored(monkeypatch):
+    """验证测试隔离开关会阻止读取本机 Streamlit secrets。"""
+    clear_ai_env(monkeypatch)
+    fake_streamlit = types.SimpleNamespace(secrets={"ai": {"api_key": "secret-key"}})
+    monkeypatch.setitem(sys.modules, "streamlit", fake_streamlit)
+
+    config = _get_ai_config()
+    assert config["api_key"] == ""
+
+
 def test_glm_config_reads_streamlit_ai_secrets(monkeypatch):
     """验证可从 Streamlit secrets 的 [ai] 分组读取 GLM 配置。"""
     clear_ai_env(monkeypatch)
+    monkeypatch.delenv(_DISABLE_STREAMLIT_SECRETS_ENV, raising=False)
 
     fake_streamlit = types.SimpleNamespace(
         secrets={
