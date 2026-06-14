@@ -13,6 +13,11 @@ from data.loader import load_skills
 from services.matcher import match_jobs
 from services.ai_service import chat_with_ai
 from ui.presenters import build_match_table_rows, build_top_match_insights
+from ui.components import (
+    render_brand_header,
+    render_match_overview,
+    render_action_buttons,
+)
 
 
 # ─── 页面配置 ──────────────────────────────────────
@@ -98,24 +103,6 @@ def reset_session(state):
 
 
 # ─── 页面组件 ──────────────────────────────────────
-
-def render_brand_header(subtitle=True):
-    """品牌头部"""
-    compact = " compact" if not subtitle else ""
-    header_html = f'<header class="app-header{compact}">'
-    header_html += '<div class="brand-lockup">'
-    header_html += '<div class="brand-mark">OC</div>'
-    header_html += '<div class="brand-copy">'
-    header_html += '<p class="eyebrow">Offer Catcher</p>'
-    header_html += '<h1>Offer捕手</h1>'
-    if subtitle:
-        header_html += '<p class="subtitle">AI 智能匹配岗位，拆解岗位要求，给出可执行的求职建议。</p>'
-    header_html += '</div></div>'
-    if subtitle:
-        header_html += '<div class="header-pills"><span>岗位匹配</span><span>简历分析</span><span>HR 视角</span></div>'
-    header_html += '</header>'
-    st.html(header_html)
-
 
 def render_form_page():
     """表单页面 - 收集学生信息"""
@@ -326,7 +313,11 @@ def render_chat_page():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    render_action_buttons(profile, matched_jobs)
+    render_action_buttons(
+        on_analysis=lambda: _handle_analysis(profile, matched_jobs),
+        on_optimization=lambda: _handle_optimization(profile, matched_jobs),
+        on_refresh=lambda: _refresh_recommendations(),
+    )
 
     # 输入框
     prompt = st.chat_input("💬 追问 AI 相关问题...（如：这个岗位面试重点是什么？）")
@@ -350,43 +341,6 @@ def render_chat_page():
     st.markdown('<div class="footer">Offer捕手 · AI 驱动求职助手</div>', unsafe_allow_html=True)
 
 
-def render_match_overview(matched_jobs: list):
-    """渲染可解释岗位推荐概览。"""
-    if not matched_jobs:
-        st.info("暂无匹配结果，请返回修改资料后重新匹配。")
-        return
-
-    top = build_top_match_insights(matched_jobs[0])
-    reasons = "".join(f"<li>{html.escape(reason)}</li>" for reason in top["reasons"])
-    matched_skill_text = "、".join(top["matched_skills"][:3]) or "待补充"
-    missing_skill_text = "、".join(top["missing_skills"][:3]) or "暂无明显缺口"
-    st.markdown(
-        f"""
-        <section class="match-board">
-            <div class="top-match-panel">
-                <h3>{html.escape(top['title'])}</h3>
-                <p class="match-note">{html.escape(top['company'])} · {html.escape(top['level'])}</p>
-                <div class="score-line"><span class="score-value">{top['score']}</span><span class="score-label">综合匹配度</span></div>
-                <ul class="reason-list">{reasons}</ul>
-            </div>
-            <div class="signal-panel">
-                <h3>关键判断</h3>
-                <div class="signal-stack">
-                    <div class="signal-row"><span>命中技能</span><strong>{html.escape(matched_skill_text)}</strong></div>
-                    <div class="signal-row"><span>关键缺口</span><strong>{html.escape(missing_skill_text)}</strong></div>
-                    <div class="signal-row"><span>学历状态</span><strong>{html.escape(top['education_status'])}</strong></div>
-                    <div class="signal-row"><span>城市偏好</span><strong>{html.escape(top['city_status'])}</strong></div>
-                </div>
-            </div>
-        </section>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    rows = build_match_table_rows(matched_jobs, limit=5)
-    st.dataframe(rows, hide_index=True, width="stretch")
-
-
 def _handle_first_matching(profile: dict, matched_jobs: list):
     """首次进入聊天页时自动触发岗位匹配推荐"""
     with st.chat_message("assistant"):
@@ -400,34 +354,10 @@ def _handle_first_matching(profile: dict, matched_jobs: list):
             st.session_state["chat_history"].append({"role": "assistant", "content": reply})
 
 
-def render_action_buttons(profile: dict, matched_jobs: list):
-    """渲染聊天页快捷操作。"""
-    # 快速操作
-    st.markdown(
-        """
-        <section class="action-heading">
-            <div>
-                <h2>继续深入</h2>
-                <p>选择一个方向，AI 会基于当前匹配岗位继续分析。</p>
-            </div>
-        </section>
-        """,
-        unsafe_allow_html=True,
-    )
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        if st.button("📊 简历匹配度分析", width="stretch"):
-            _handle_analysis(profile, matched_jobs)
-
-    with col2:
-        if st.button("✏️ 简历优化建议", width="stretch"):
-            _handle_optimization(profile, matched_jobs)
-
-    with col3:
-        if st.button("🔄 换一批推荐", width="stretch"):
-            st.session_state["chat_history"] = []
-            st.rerun()
+def _refresh_recommendations():
+    """清空聊天历史并重新渲染，触发新一轮匹配。"""
+    st.session_state["chat_history"] = []
+    st.rerun()
 
 
 def _handle_analysis(profile: dict, matched_jobs: list):
