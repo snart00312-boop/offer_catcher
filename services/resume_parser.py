@@ -46,6 +46,9 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
             text_parts.append(page.get_text("text"))
         doc.close()
         full_text = "\n".join(text_parts).strip()
+        if len(full_text) > 15000:
+            doc.close()
+            raise ResumeParseError("简历文本过长（超过 15000 字符），请确认上传的是简历文件。")
         if not full_text:
             raise ResumeParseError("PDF 中未提取到文本内容，请确保简历不是扫描件或纯图片。")
         return full_text
@@ -226,13 +229,13 @@ def parse_resume(file_bytes: bytes, filename: str, ai_service=None) -> dict:
         raise ResumeParseError(f"不支持的文件格式：{filename.split('.')[-1]}，请上传 PDF 或 DOCX 文件。")
 
     if ai_service is not None:
+        from services.ai_service import call_ai_chat
         try:
             prompt = build_resume_parsing_prompt(raw_text)
             messages = [
                 {"role": "system", "content": "你是一位专业的简历解析助手，只输出 JSON。"},
                 {"role": "user", "content": prompt},
             ]
-            from services.ai_service import call_ai_chat
             ai_response = call_ai_chat(messages, temperature=0.1)
             parsed = _parse_ai_response(ai_response)
         except Exception as e:
