@@ -33,7 +33,8 @@ def test_reset_session_clears_data():
     assert state["page"] == "form"
     assert state["profile"] == {}
     assert state["chat_history"] == []
-    assert "matched_jobs" not in state
+    assert state["matched_jobs"] == []
+    assert state["processing"] is False
 
 
 def test_format_profile_for_display():
