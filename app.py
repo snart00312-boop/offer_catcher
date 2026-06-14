@@ -33,6 +33,7 @@ def init_session_state(state):
         "resume_raw_text": None,
         "resume_file_name": None,
         "parsed_profile": None,
+        "_resume_uploaded": False,
         "chat_history": [],
         "matched_jobs": [],
         "processing": False,
@@ -289,7 +290,9 @@ def render_form_page():
             st.rerun()
 
     # ── 简历上传 ──
-    with st.expander("📄 上传简历自动填写", expanded=False):
+    has_result = st.session_state.get("parsed_profile") is not None
+    has_upload = st.session_state.get("_resume_uploaded", False)
+    with st.expander("📄 上传简历自动填写", expanded=has_result or has_upload):
         st.markdown(
             '<p style="color:#667085;font-size:0.88rem;margin-bottom:0.75rem;">'
             '支持 PDF / DOCX 格式，AI 将自动提取你的信息并回填表单。</p>',
@@ -298,6 +301,7 @@ def render_form_page():
         uploaded_file = st.file_uploader("选择简历文件", type=["pdf", "docx"], label_visibility="collapsed")
 
         if uploaded_file is not None:
+            st.session_state["_resume_uploaded"] = True
             if uploaded_file.size > 10 * 1024 * 1024:
                 st.error("文件大小不能超过 10MB，请压缩后重新上传。")
             elif st.session_state.get("processing"):
