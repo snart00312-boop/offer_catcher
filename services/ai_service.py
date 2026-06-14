@@ -383,3 +383,87 @@ def chat_with_ai(student_profile: dict, job_context: dict = None,
     ]
 
     return call_ai_chat(messages)
+
+
+# ── 流式输出 + 重试 ─────────────────────────────────
+
+from typing import Generator
+
+
+def _call_ai_chat_stream(messages: list, temperature: float = 0.7) -> Generator[str, None, None]:
+    """流式调用大模型 API，逐 chunk yield 文本。"""
+    try:
+        config = _get_ai_config()
+        if not config["api_key"]:
+            yield "（AI 服务暂时不可用：未配置 API Key。请在本地 .env、环境变量或 Streamlit secrets 中设置后重启应用。）"
+            return
+
+        client = _get_client()
+        stream = client.chat.completions.create(
+            model=config["model"],
+            messages=messages,
+            temperature=temperature,
+            stream=True,
+        )
+        for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+    except Exception as e:
+        error_text = _sanitize_error_text(str(e))
+        lower_error = error_text.lower()
+        if "401" in lower_error or "unauthorized" in lower_error or "api key" in lower_error:
+            yield f"（AI 服务认证失败：API Key 不可用。请检查配置后重启应用。原始错误: {error_text}）"
+        else:
+            yield f"（AI 服务暂时不可用，错误信息: {error_text}。请稍后重试。）"
+
+
+def chat_with_ai_stream(
+    student_profile: dict,
+    job_context: dict = None,
+    query_type: str = "matching",
+    user_message: str = "",
+) -> Generator[str, None, None]:
+    """统一的 AI 流式对话入口。参数与 chat_with_ai 相同，返回生成器。
+
+    query_type: "matching" | "analysis" | "optimization" | "chat"
+    """
+    system_prompt = (
+        "你是一位资深 HR 职业顾问，始终保持专业、客观的风格。"
+        "回答结构化清晰，适当使用表格展示信息。"
+    )
+
+    if query_type == "matching":
+        matched_jobs = job_context.get("matched_jobs", []) if job_context else []
+        user_prompt = build_matching_prompt(student_profile, matched_jobs)
+    elif query_type == "analysis":
+        job = job_context.get("job", {}) if job_context else {}
+        user_prompt = build_analysis_prompt(student_profile, job)
+    elif query_type == "optimization":
+        job = job_context.get("job", {}) if job_context else {}
+        user_prompt = build_optimization_prompt(student_profile, job)
+    else:
+        user_prompt = user_message
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    yield from _call_ai_chat_stream(messages)
+
+
+def call_ai_chat_with_retry(messages: list, temperature: float = 0.7, max_retries: int = 2) -> str:
+    """带重试的 AI 调用。非流式，用于简历解析等需要完整响应的场景。"""
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            return call_ai_chat(messages, temperature)
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries:
+                import time
+                time.sleep(1.5 * (attempt + 1))
+    return (
+        f"（AI 服务调用失败，已重试 {max_retries} 次。"
+        f"错误信息: {_sanitize_error_text(str(last_error))}。请稍后重试。）"
+    )

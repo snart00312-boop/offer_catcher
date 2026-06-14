@@ -249,3 +249,18 @@ def test_sanitize_error_text_masks_secret_like_tokens():
     sanitized = _sanitize_error_text(raw)
     assert "6339cfc2" not in sanitized
     assert "***masked***" in sanitized
+
+
+def test_chat_with_ai_stream_returns_generator():
+    """验证流式接口返回生成器，无 API key 时也能正常产出错误消息。"""
+    from services.ai_service import chat_with_ai_stream
+    profile = {
+        "name": "测试", "education": "本科", "school": "测试大学",
+        "major": "CS", "skills": ["Python"], "experience": "无",
+        "target_position": "开发", "city": "北京",
+    }
+    gen = chat_with_ai_stream(profile, job_context=None, query_type="matching")
+    assert hasattr(gen, "__iter__")
+    chunks = list(gen)
+    assert len(chunks) > 0
+    assert isinstance(chunks[0], str)
