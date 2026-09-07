@@ -433,24 +433,36 @@ def render_chat_page():
         return
 
     selected = selected_job_result(st.session_state)
-    list_col, detail_col = st.columns([0.9, 1.4], gap="large")
+
+    # Streamlit columns stack vertically on narrow screens. Keep a mobile-only
+    # copy of the selected JD before the list so the user's current context is
+    # visible without scrolling past every recommendation first.
+    if selected:
+        with st.container(key="mobile_jd_panel"):
+            st.markdown('<div class="mobile-jd-heading"><div class="card-kicker">CURRENT ROLE</div><h2>当前岗位 JD</h2><p>先确认岗位要求，再浏览其他推荐。</p></div>', unsafe_allow_html=True)
+            render_job_detail(selected)
+
+    list_col, detail_col = st.columns([1, 1.45], gap="large")
     with list_col:
-        st.markdown('<div class="workspace-heading"><div class="card-kicker">CURATED ROLES</div><h2>适合你的岗位</h2><p>按规则匹配分排序，分数用于比较岗位，不代表录用概率。</p></div>', unsafe_allow_html=True)
-        visible_limit = len(matched_jobs) if st.session_state.get("show_all_jobs") else min(5, len(matched_jobs))
-        for index, result in enumerate(matched_jobs[:visible_limit], 1):
-            job_id = result.job.get("id", f"job-{index}")
-            render_job_card(result, index, selected is result)
-            if st.button("查看岗位" if selected is not result else "已选中", key=f"select_job_{job_id}", width="stretch", disabled=selected is result):
-                st.session_state["selected_job_id"] = job_id
-                st.session_state["chat_history"] = []
-                st.rerun()
-        if len(matched_jobs) > 5 and not st.session_state.get("show_all_jobs"):
-            if st.button(f"查看更多岗位（还有 {len(matched_jobs) - 5} 个）", key="show_more_jobs", width="stretch"):
-                st.session_state["show_all_jobs"] = True
-                st.rerun()
+        with st.container(key="job_list_panel"):
+            st.markdown('<div class="workspace-heading"><div class="card-kicker">CURATED ROLES</div><div class="workspace-title-row"><h2>适合你的岗位</h2><span class="workspace-count">共 %d 个</span></div><p>按规则匹配分排序，分数用于比较岗位，不代表录用概率。</p></div>' % len(matched_jobs), unsafe_allow_html=True)
+            visible_limit = len(matched_jobs) if st.session_state.get("show_all_jobs") else min(5, len(matched_jobs))
+            for index, result in enumerate(matched_jobs[:visible_limit], 1):
+                job_id = result.job.get("id", f"job-{index}")
+                with st.container(key=f"job_item_{job_id}"):
+                    render_job_card(result, index, selected is result)
+                    if st.button("查看岗位" if selected is not result else "✓ 当前岗位", key=f"select_job_{job_id}", width="stretch", disabled=selected is result):
+                        st.session_state["selected_job_id"] = job_id
+                        st.session_state["chat_history"] = []
+                        st.rerun()
+            if len(matched_jobs) > 5 and not st.session_state.get("show_all_jobs"):
+                if st.button(f"查看更多岗位（还有 {len(matched_jobs) - 5} 个）", key="show_more_jobs", width="stretch"):
+                    st.session_state["show_all_jobs"] = True
+                    st.rerun()
     with detail_col:
         if selected:
-            render_job_detail(selected)
+            with st.container(key="desktop_jd_panel"):
+                render_job_detail(selected)
             render_match_overview(matched_jobs, selected_result=selected)
             render_action_buttons(
                 on_analysis=lambda: handle_analysis(profile, matched_jobs),

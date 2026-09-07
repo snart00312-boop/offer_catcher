@@ -45,3 +45,5 @@ def test_chat_page_renders_deterministic_recommendations_without_ai_call():
     assert "任职要求" in rendered_markdown
     assert "加分项" in rendered_markdown
     assert "适配专业" in rendered_markdown
+    assert "mobile-jd-heading" in rendered_markdown
+    assert "workspace-count" in rendered_markdown

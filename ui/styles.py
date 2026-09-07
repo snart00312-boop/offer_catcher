@@ -96,22 +96,35 @@ def load_css() -> str:
     .summary-name, .skill-chip { background: var(--oc-mint); color: var(--oc-teal-deep); }
     .muted { color: var(--oc-muted); font-size: .8rem; }
 
-    .workspace-heading { margin-bottom: .9rem; }
+    .workspace-heading { margin-bottom: .72rem; }
+    .workspace-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; }
     .workspace-heading h2 { margin: 0; color: var(--oc-ink); font-size: 1.35rem; }
     .workspace-heading p { margin: .35rem 0 0; color: var(--oc-muted); font-size: .8rem; line-height: 1.5; }
-    .job-card { margin: 0 0 .45rem; padding: .9rem .95rem .82rem; border: 1px solid var(--oc-line); border-radius: 14px; background: rgba(255,255,255,.84); transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease; }
+    .workspace-count { flex: 0 0 auto; border: 1px solid var(--oc-line); border-radius: 999px; padding: .25rem .52rem; background: rgba(255,255,255,.72); color: var(--oc-muted); font-size: .68rem; font-weight: 750; }
+    .st-key-job_list_panel { min-width: 0; gap: .45rem !important; }
+    [class*="st-key-job_item_"] { min-width: 0; gap: .28rem !important; }
+    [class*="st-key-job_item_"] .stButton { margin: 0 0 .42rem; }
+    [class*="st-key-job_item_"] .stButton button { min-height: 2.25rem; border-radius: 10px !important; background: rgba(255,255,255,.74) !important; font-size: .77rem !important; }
+    [class*="st-key-job_item_"] .stButton button:disabled { opacity: 1 !important; border-color: rgba(15,118,110,.22) !important; background: var(--oc-mint) !important; color: var(--oc-teal-deep) !important; }
+    .job-card { margin: 0; padding: .78rem .88rem .72rem; border: 1px solid var(--oc-line); border-radius: 14px; background: rgba(255,255,255,.84); transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease; }
     .job-card.selected { border-color: var(--oc-teal); box-shadow: 0 0 0 2px rgba(15,118,110,.12), var(--oc-shadow); }
     .job-card:hover { border-color: rgba(15,118,110,.5); transform: translateY(-1px); box-shadow: var(--oc-shadow); }
     .job-card-top { display: flex; justify-content: space-between; align-items: center; }
     .rank-badge { color: #81918a; font-size: .68rem; font-weight: 850; letter-spacing: .08em; }
     .score-badge { color: var(--oc-teal-deep); font-size: .94rem; font-weight: 850; }
-    .job-card h3 { margin: .42rem 0 .14rem; color: var(--oc-ink); font-size: .98rem; }
+    .job-card h3 { margin: .38rem 0 .14rem; color: var(--oc-ink); font-size: .96rem; }
     .job-company { margin: 0; color: var(--oc-muted); font-size: .78rem; }
     .job-meta { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: .5rem; color: #6b7b74; font-size: .71rem; }
     .job-reason { margin: .52rem 0 .4rem; color: var(--oc-ink); font-size: .75rem; line-height: 1.45; }
     .job-tags { display: flex; flex-wrap: wrap; gap: .28rem; }
     .job-tags span { padding: .22rem .45rem; font-size: .64rem; }
-    .job-detail { padding: 1.25rem 1.35rem; border: 1px solid var(--oc-line); border-radius: 16px; background: var(--oc-surface); box-shadow: var(--oc-shadow); }
+    .st-key-mobile_jd_panel { display: none !important; }
+    .st-key-desktop_jd_panel { min-width: 0; position: sticky; top: .85rem; z-index: 2; align-self: flex-start; margin-bottom: .85rem; }
+    .st-key-desktop_jd_panel .job-detail { max-height: calc(100vh - 1.7rem); overflow-y: auto; scrollbar-gutter: stable; }
+    .mobile-jd-heading { margin: 0 0 .68rem; }
+    .mobile-jd-heading h2 { margin: 0; color: var(--oc-ink); font-size: 1.22rem; }
+    .mobile-jd-heading p { margin: .3rem 0 0; color: var(--oc-muted); font-size: .78rem; }
+    .job-detail { padding: 1.18rem 1.25rem; border: 1px solid var(--oc-line); border-radius: 16px; background: var(--oc-surface); box-shadow: var(--oc-shadow); }
     .job-detail h2 { margin: .15rem 0 .2rem; color: var(--oc-ink); font-size: 1.55rem; }
     .detail-company { margin: 0; color: var(--oc-muted); font-size: .82rem; }
     .detail-meta-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .45rem; margin-top: .85rem; }
@@ -167,6 +180,6 @@ def load_css() -> str:
     @media (prefers-reduced-motion: reduce) { .oc-reveal, .job-card, .stButton button, .stFormSubmitButton button { animation: none; transition: none; } }
     @media (max-width: 900px) { .block-container { padding: 1.35rem 1.2rem 2.8rem; } .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .upload-card { align-items: flex-start; flex-wrap: wrap; } .upload-meta { margin-left: 0; } }
     @media (max-width: 900px) { .detail-meta-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 680px) { .app-header, .header-pills { align-items: flex-start; flex-direction: column; } .header-pills { justify-content: flex-start; } .stepper { gap: .35rem; margin-bottom: 1.5rem; } .step-item { font-size: .68rem; } .step-item strong { display: none; } .step-line { max-width: none; } .hero-copy h2 { font-size: 2.1rem; } .upload-card { padding: .95rem; } .summary-grid, .detail-columns, .match-board, .detail-meta-grid { grid-template-columns: 1fr; } .job-detail { padding: 1rem; } .stButton button, .stFormSubmitButton button { min-height: 2.9rem; } }
+    @media (max-width: 680px) { .app-header, .header-pills { align-items: flex-start; flex-direction: column; } .header-pills { justify-content: flex-start; } .stepper { gap: .35rem; margin-bottom: 1.5rem; } .step-item { font-size: .68rem; } .step-item strong { display: none; } .step-line { max-width: none; } .hero-copy h2 { font-size: 2.1rem; } .upload-card { padding: .95rem; } .summary-grid, .detail-columns, .match-board, .detail-meta-grid { grid-template-columns: 1fr; } .st-key-mobile_jd_panel { display: block !important; margin-bottom: 1.15rem; } .st-key-mobile_jd_panel .job-detail { padding: .95rem; } .st-key-desktop_jd_panel { display: none !important; } .workspace-title-row { align-items: center; } .workspace-count { font-size: .64rem; } .st-key-job_list_panel { gap: .35rem !important; } [class*="st-key-job_item_"] .stButton button { min-height: 2.7rem; } .stButton button, .stFormSubmitButton button { min-height: 2.9rem; } }
     @media (max-width: 390px) { .block-container { padding-left: .8rem; padding-right: .8rem; } .brand-mark { width: 40px; height: 40px; } .app-header h1 { font-size: 1.45rem; } }
 </style>"""
