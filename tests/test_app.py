@@ -133,10 +133,22 @@ def test_regenerate_explanation_calls_ai_and_keeps_job_ranking(monkeypatch):
     original_state = app.st.session_state
     original_rerun = app.st.rerun
     original_spinner = app.st.spinner
+    original_chat_message = app.st.chat_message
+    original_write_stream = app.st.write_stream
     original_stream = app.chat_with_ai_stream
     monkeypatch.setattr(app.st, "session_state", state)
     monkeypatch.setattr(app.st, "rerun", lambda: None)
     monkeypatch.setattr(app.st, "spinner", lambda *args, **kwargs: nullcontext())
+    monkeypatch.setattr(app.st, "chat_message", lambda *args, **kwargs: nullcontext())
+
+    stream_outputs = []
+
+    def fake_write_stream(generator):
+        content = "".join(str(chunk) for chunk in generator if chunk)
+        stream_outputs.append(content)
+        return content
+
+    monkeypatch.setattr(app.st, "write_stream", fake_write_stream)
 
     def fake_stream(*args, **kwargs):
         calls.append((args, kwargs))
@@ -149,9 +161,12 @@ def test_regenerate_explanation_calls_ai_and_keeps_job_ranking(monkeypatch):
         app.st.session_state = original_state
         app.st.rerun = original_rerun
         app.st.spinner = original_spinner
+        app.st.chat_message = original_chat_message
+        app.st.write_stream = original_write_stream
         app.chat_with_ai_stream = original_stream
 
     assert len(calls) == 1
+    assert stream_outputs == ["新的解读"]
     assert state["chat_history"] == [{"role": "assistant", "content": "新的解读", "label": "岗位匹配解读"}]
     assert state["matched_jobs"] == [result]
     assert state["analysis_cache"] == {}

@@ -389,17 +389,15 @@ def _regenerate_explanation():
         st.session_state["processing_kind"] = "matching"
         try:
             with st.spinner("正在重新生成岗位解读…"):
-                content = "".join(
-                    str(chunk)
-                    for chunk in chat_with_ai_stream(
-                        profile,
-                        job_context=_ai_context(profile, matched_jobs, selected),
-                        query_type="matching",
+                with st.chat_message("assistant"):
+                    _append_ai_stream(
+                        chat_with_ai_stream(
+                            profile,
+                            job_context=_ai_context(profile, matched_jobs, selected),
+                            query_type="matching",
+                        ),
+                        label="岗位匹配解读",
                     )
-                    if chunk
-                ).strip()
-            if content:
-                st.session_state["chat_history"].append({"role": "assistant", "content": content, "label": "岗位匹配解读"})
         finally:
             st.session_state["processing"] = False
             st.session_state["processing_kind"] = None

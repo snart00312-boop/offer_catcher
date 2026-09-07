@@ -172,7 +172,7 @@ Streamlit 交互会触发脚本重跑，form 则批量提交字段；上述状�
 
 ## 9. 最终本地验收记录（2026-09-07）
 
-- `python -m pytest -q`：90 passed。
+- `python -m pytest -q`：92 passed。
 - `python -m compileall -q app.py services data ui tests`：通过。
 - `git diff --check`：通过（仅提示 Windows 换行格式）。
 - 测试简历 `E:\agent_job\Agent开发优秀简历示例_匿名_v3.docx`：DOCX 文本提取与页面上传后均识别 7/7 字段，覆盖度 100%，保留 28 项技能；真实 AI 解析方法为 `ai`，无告警；确认后进入 10 个岗位的工作台。

@@ -29,7 +29,7 @@ Start the app:
 streamlit run app.py
 ```
 
-The first screen is the resume-first start page. Choose a PDF/DOCX and click “解析这份简历”, then review the extracted fields before matching. Manual entry remains available in the collapsed “手动填写资料” section. The workspace shows deterministic ranked recommendations first; AI analysis and chat are on demand. If the AI provider is unavailable, the parser uses an explicitly labelled local fallback for common Chinese and English resume layouts; users still confirm every field before matching.
+The first screen is the resume-first start page. Choose a PDF/DOCX and click “解析这份简历”, then review the extracted fields before matching. Manual entry remains available in the collapsed “手动填写资料” section. The workspace shows deterministic ranked recommendations first; AI analysis, chat, and regenerated explanations stream into the page on demand. If the AI provider is unavailable, the parser uses an explicitly labelled local fallback for common Chinese and English resume layouts; users still confirm every field before matching.
 
 ## AI Configuration
 

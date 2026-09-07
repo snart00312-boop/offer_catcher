@@ -18,8 +18,8 @@ from openai import OpenAI
 
 
 _DEFAULT_API_KEY = ""
-_DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-_DEFAULT_MODEL = "qwen3.5-omni-plus-2026-03-15"
+_DEFAULT_BASE_URL = "https://llm-xzld0nked9gxsskh.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+_DEFAULT_MODEL = "qwen3.8-27b"
 _DOTENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 _AI_SECRET_SECTIONS = ("ai", "bailian", "dashscope", "glm", "zhipuai")
 _OPENAI_SECRET_SECTIONS = ("openai",)
@@ -345,6 +345,9 @@ def call_ai_chat(messages: list, temperature: float = 0.7, *, raise_errors: bool
         if "401" in lower_error or "unauthorized" in lower_error or "api key" in lower_error:
             message = f"（AI 服务认证失败：API Key 不可用或没有 {config['model']} 权限。请检查配置。原始错误: {error_text}）"
             code = "authentication"
+        elif "free quota exhausted" in lower_error or "quota exhausted" in lower_error or "use free tier only" in lower_error:
+            message = f"（AI 服务额度不足：{config['model']} 的免费额度已用完。请在百炼控制台充值或关闭“仅使用免费额度”后重试。）"
+            code = "quota_exhausted"
         elif "timeout" in lower_error or "timed out" in lower_error:
             message = "（AI 服务请求超时，请稍后重试。）"
             code = "timeout"
@@ -401,6 +404,8 @@ def _call_ai_chat_stream(messages: list, temperature: float = 0.7) -> Generator[
         lower_error = error_text.lower()
         if "401" in lower_error or "unauthorized" in lower_error or "api key" in lower_error:
             yield "（AI 服务认证失败，请检查 API Key 配置后重试。）"
+        elif "free quota exhausted" in lower_error or "quota exhausted" in lower_error or "use free tier only" in lower_error:
+            yield f"（AI 服务额度不足：{config['model']} 的免费额度已用完。请在百炼控制台充值或关闭“仅使用免费额度”后重试。）"
         elif "timeout" in lower_error or "timed out" in lower_error:
             yield "（AI 服务请求超时，请稍后重试。）"
         else:

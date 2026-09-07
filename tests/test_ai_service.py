@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from services.ai_service import (
+    AIServiceError,
     _DEFAULT_BASE_URL,
     _DEFAULT_MODEL,
     _DISABLE_STREAMLIT_SECRETS_ENV,
@@ -16,6 +17,7 @@ from services.ai_service import (
     build_matching_prompt,
     build_analysis_prompt,
     build_optimization_prompt,
+    call_ai_chat,
     parse_ai_response,
 )
 
@@ -148,10 +150,35 @@ def test_build_matching_prompt_no_target():
     assert "推荐" in prompt
 
 
-def test_default_model_is_qwen_omni_plus():
-    """验证默认模型切到百炼全模态模型。"""
-    assert _DEFAULT_MODEL == "qwen3.5-omni-plus-2026-03-15"
-    assert _DEFAULT_BASE_URL == "https://dashscope.aliyuncs.com/compatible-mode/v1"
+def test_default_model_is_qwen_38_27b():
+    """验证默认配置固定到体验用 qwen3.8-27b 兼容端点。"""
+    assert _DEFAULT_MODEL == "qwen3.8-27b"
+    assert _DEFAULT_BASE_URL == "https://llm-xzld0nked9gxsskh.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+
+
+def test_quota_error_is_reported_without_provider_payload(monkeypatch):
+    """验证免费额度错误会给出明确提示，而不会重试或回显供应商原文。"""
+    clear_ai_env(monkeypatch)
+    monkeypatch.setattr(
+        "services.ai_service._get_ai_config",
+        lambda: {
+            "api_key": "configured-key",
+            "base_url": _DEFAULT_BASE_URL,
+            "model": _DEFAULT_MODEL,
+        },
+    )
+
+    def raise_quota_error():
+        raise RuntimeError("Error code: 403 Free quota exhausted; use free tier only")
+
+    monkeypatch.setattr("services.ai_service._get_client", raise_quota_error)
+
+    with pytest.raises(AIServiceError) as exc_info:
+        call_ai_chat([], raise_errors=True)
+
+    assert exc_info.value.code == "quota_exhausted"
+    assert "仅使用免费额度" in exc_info.value.message
+    assert "Free quota exhausted" not in exc_info.value.message
 
 
 def test_get_env_value_uses_first_configured_name(monkeypatch):
@@ -169,8 +196,22 @@ def test_glm_config_does_not_reuse_deepseek_key(monkeypatch):
 
     config = _get_ai_config()
     assert config["api_key"] == ""
-    assert config["base_url"] == "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    assert config["model"] == "qwen3.5-omni-plus-2026-03-15"
+    assert config["base_url"] == "https://llm-xzld0nked9gxsskh.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+    assert config["model"] == "qwen3.8-27b"
+
+
+def test_dashscope_key_only_uses_qwen_38_defaults(monkeypatch):
+    """验证 Cloud 只配置 Key 时也会使用体验用模型和端点。"""
+    clear_ai_env(monkeypatch)
+    monkeypatch.delenv(_DISABLE_STREAMLIT_SECRETS_ENV, raising=False)
+    fake_streamlit = types.SimpleNamespace(secrets={"dashscope": {"api_key": "dashscope-test-key"}})
+    monkeypatch.setitem(sys.modules, "streamlit", fake_streamlit)
+
+    config = _get_ai_config()
+
+    assert config["api_key"] == "dashscope-test-key"
+    assert config["model"] == "qwen3.8-27b"
+    assert config["base_url"] == _DEFAULT_BASE_URL
 
 
 def test_disabled_streamlit_secrets_are_ignored(monkeypatch):
