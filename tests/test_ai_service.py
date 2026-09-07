@@ -18,6 +18,7 @@ from services.ai_service import (
     build_analysis_prompt,
     build_optimization_prompt,
     call_ai_chat,
+    call_ai_chat_stream,
     parse_ai_response,
 )
 
@@ -305,3 +306,16 @@ def test_chat_with_ai_stream_returns_generator():
     chunks = list(gen)
     assert len(chunks) > 0
     assert isinstance(chunks[0], str)
+
+
+def test_call_ai_chat_stream_delegates_generic_messages(monkeypatch):
+    """结构化调用方也必须获得生成器，而不是退回一次性请求。"""
+    monkeypatch.setattr(
+        "services.ai_service._call_ai_chat_stream",
+        lambda messages, temperature=0.7: iter(["{\"name\":", "\"测试\"}"]),
+    )
+
+    result = call_ai_chat_stream([{"role": "user", "content": "parse"}], temperature=0.1)
+
+    assert hasattr(result, "__iter__")
+    assert "".join(result) == '{"name":"测试"}'

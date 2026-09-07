@@ -170,3 +170,46 @@ def test_regenerate_explanation_calls_ai_and_keeps_job_ranking(monkeypatch):
     assert state["chat_history"] == [{"role": "assistant", "content": "新的解读", "label": "岗位匹配解读"}]
     assert state["matched_jobs"] == [result]
     assert state["analysis_cache"] == {}
+
+
+@pytest.mark.parametrize(
+    ("handler_name", "query_type", "label_suffix"),
+    [
+        ("handle_analysis", "analysis", "匹配分析"),
+        ("handle_optimization", "optimization", "简历建议"),
+    ],
+)
+def test_action_handlers_stream_inside_assistant_message(monkeypatch, handler_name, query_type, label_suffix):
+    """匹配分析和简历建议都必须使用同一套 assistant 流式出口。"""
+    import app
+
+    result = MatchResult(job={"id": "a", "title": "岗位 A"}, score=80)
+    state = {
+        "profile": {"name": "测试", "skills": ["Python"]},
+        "matched_jobs": [result],
+        "selected_job_id": "a",
+        "chat_history": [],
+        "processing": False,
+        "processing_kind": None,
+    }
+    calls = []
+    rendered_roles = []
+
+    monkeypatch.setattr(app.st, "session_state", state)
+    monkeypatch.setattr(app.st, "chat_message", lambda role: rendered_roles.append(role) or nullcontext())
+
+    def fake_write_stream(generator):
+        text = "".join(str(chunk) for chunk in generator if chunk)
+        calls.append(text)
+        return text
+
+    monkeypatch.setattr(app.st, "write_stream", fake_write_stream)
+    monkeypatch.setattr(app, "chat_with_ai_stream", lambda *args, **kwargs: (calls.append(kwargs) or iter(["流式", "结果"])))
+
+    getattr(app, handler_name)(state["profile"], state["matched_jobs"])
+
+    assert rendered_roles == ["assistant"]
+    assert calls[0]["query_type"] == query_type
+    assert calls[-1] == "流式结果"
+    assert state["chat_history"][-1]["label"].endswith(label_suffix)
+    assert state["_streamed_ai_in_current_run"] is True

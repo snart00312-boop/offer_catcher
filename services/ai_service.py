@@ -419,6 +419,11 @@ def _call_ai_chat_stream(messages: list, temperature: float = 0.7) -> Generator[
             yield f"（AI 服务暂时不可用，错误信息: {error_text}。请稍后重试。）"
 
 
+def call_ai_chat_stream(messages: list, temperature: float = 0.7) -> Generator[str, None, None]:
+    """Stream a generic OpenAI-compatible response for structured callers."""
+    yield from _call_ai_chat_stream(messages, temperature)
+
+
 def chat_with_ai_stream(
     student_profile: dict,
     job_context: dict | None = None,

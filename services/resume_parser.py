@@ -494,7 +494,8 @@ def parse_resume(file_bytes: bytes, filename: str, ai_service: Callable | object
 
     Passing an AI callable enables structured parsing. ``None`` deliberately
     means deterministic local fallback, which keeps tests and offline use
-    functional. The Streamlit app injects ``call_ai_chat`` explicitly.
+    functional. The Streamlit app injects a streaming AI adapter explicitly;
+    it is consumed into one complete JSON document before validation.
     """
     data = _ensure_file_bytes(file_bytes)
     name_lower = str(filename or "").lower().strip()

@@ -7,7 +7,7 @@ import html
 
 import streamlit as st
 
-from services.ai_service import call_ai_chat, chat_with_ai_stream
+from services.ai_service import call_ai_chat, call_ai_chat_stream, chat_with_ai_stream
 from services.matcher import match_jobs
 from services.profile_service import build_profile, validate_profile
 from services.resume_parser import ResumeParseError, parse_resume
@@ -160,9 +160,14 @@ def handle_resume_confirm(profile: dict):
 
 
 def _append_ai_stream(reply_generator, *, label: str = ""):
-    content = st.write_stream(reply_generator)
+    """Render one assistant response as a stream and persist its final text."""
+    with st.chat_message("assistant"):
+        content = st.write_stream(reply_generator)
     if content:
-        st.session_state["chat_history"].append({"role": "assistant", "content": content, "label": label})
+        st.session_state.setdefault("chat_history", []).append({"role": "assistant", "content": content, "label": label})
+        # Action buttons are rendered before the history list. Mark this run
+        # so the freshly streamed message is not rendered a second time below.
+        st.session_state["_streamed_ai_in_current_run"] = True
     return content
 
 
@@ -172,6 +177,11 @@ def _ai_context(profile: dict, matched_jobs: list, selected=None) -> dict:
         "selected_match": selected,
         "job": selected.job if selected is not None else {},
     }
+
+
+def _parse_resume_with_stream(messages: list, temperature: float = 0.1) -> str:
+    """Consume the parser response incrementally, then return complete JSON."""
+    return "".join(call_ai_chat_stream(messages, temperature=temperature))
 
 
 def handle_first_matching(profile: dict, matched_jobs: list):
@@ -233,11 +243,10 @@ def handle_chat_message(prompt: str, profile: dict, matched_jobs: list):
     st.session_state["processing"] = True
     st.session_state["processing_kind"] = "chat"
     try:
-        with st.chat_message("assistant"):
-            _append_ai_stream(
-                chat_with_ai_stream(profile, job_context=_ai_context(profile, matched_jobs, selected), query_type="chat", user_message=prompt, chat_history=history),
-                label="追问",
-            )
+        _append_ai_stream(
+            chat_with_ai_stream(profile, job_context=_ai_context(profile, matched_jobs, selected), query_type="chat", user_message=prompt, chat_history=history),
+            label="追问",
+        )
     finally:
         st.session_state["processing"] = False
         st.session_state["processing_kind"] = None
@@ -284,7 +293,7 @@ def _render_resume_flow(*, show_uploader: bool = True) -> None:
                     parsed = parse_resume(
                         st.session_state["resume_selected_bytes"],
                         st.session_state["resume_selected_name"],
-                        ai_service=call_ai_chat,
+                        ai_service=_parse_resume_with_stream,
                     )
                 st.session_state["resume_raw_text"] = parsed.get("_raw_text", "")
                 st.session_state["resume_file_name"] = st.session_state["resume_selected_name"]
@@ -389,19 +398,20 @@ def _regenerate_explanation():
         st.session_state["processing_kind"] = "matching"
         try:
             with st.spinner("正在重新生成岗位解读…"):
-                with st.chat_message("assistant"):
-                    _append_ai_stream(
-                        chat_with_ai_stream(
-                            profile,
-                            job_context=_ai_context(profile, matched_jobs, selected),
-                            query_type="matching",
-                        ),
-                        label="岗位匹配解读",
-                    )
+                _append_ai_stream(
+                    chat_with_ai_stream(
+                        profile,
+                        job_context=_ai_context(profile, matched_jobs, selected),
+                        query_type="matching",
+                    ),
+                    label="岗位匹配解读",
+                )
         finally:
             st.session_state["processing"] = False
             st.session_state["processing_kind"] = None
-    st.rerun()
+    # The streamed assistant message is already present in this run. The
+    # workspace skips static history rendering for the current run, so a
+    # second rerun would hide the streaming effect.
 
 
 def _refresh():
@@ -412,6 +422,9 @@ def _refresh():
 def render_chat_page():
     """Render the new job workspace; ``chat`` remains a compatibility alias."""
     st.html(load_css())
+    # This is an ephemeral render marker; it must never leak into the next
+    # interaction, where the persisted history should render normally.
+    st.session_state.pop("_streamed_ai_in_current_run", None)
     profile = st.session_state.get("profile", {})
     matched_jobs = st.session_state.get("matched_jobs", [])
     render_brand_header(subtitle=False)
@@ -469,9 +482,10 @@ def render_chat_page():
                 on_optimization=lambda: handle_optimization(profile, matched_jobs),
                 on_refresh=_regenerate_explanation,
             )
-            render_ai_history(st.session_state.get("chat_history", []))
-            if not st.session_state.get("chat_history"):
-                st.info("先选一个动作，或直接在下方问 AI。规则匹配结果已经可以使用。")
+            if not st.session_state.pop("_streamed_ai_in_current_run", False):
+                render_ai_history(st.session_state.get("chat_history", []))
+                if not st.session_state.get("chat_history"):
+                    st.info("先选一个动作，或直接在下方问 AI。规则匹配结果已经可以使用。")
             if st.session_state.get("processing"):
                 st.info("AI 正在处理中，请稍候…")
             prompt = st.chat_input("追问当前岗位，例如：面试最该准备什么？")
