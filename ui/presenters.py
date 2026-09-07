@@ -25,6 +25,18 @@ def build_match_table_rows(matched_jobs: list, limit: int = 5) -> list[dict]:
 def build_top_match_insights(match_result) -> dict:
     """提取首选岗位的核心解释，用于页面和测试。"""
     job = match_result.job
+    education_labels = {
+        "exact": "学历刚好匹配",
+        "higher": "学历高于门槛",
+        "lower": "学历低于门槛",
+        "not_required": "岗位未限制学历",
+        "unknown": "待补充学历",
+    }
+    city_labels = {
+        "exact": "符合城市偏好",
+        "different": "与城市偏好不同",
+        "open": "城市偏好开放",
+    }
     return {
         "title": job.get("title", "未命名岗位"),
         "company": job.get("company", "未标注"),
@@ -33,8 +45,7 @@ def build_top_match_insights(match_result) -> dict:
         "reasons": match_result.reasons,
         "matched_skills": match_result.skill_match.get("matched_skills", []),
         "missing_skills": match_result.skill_match.get("missing_skills", []),
-        "education_status": match_result.education_match.get("match_level", "unknown"),
+        "education_status": education_labels.get(match_result.education_match.get("match_level", "unknown"), "待补充"),
         "major_relevant": match_result.major_match.get("is_relevant", False),
-        "city_status": match_result.city_match.get("match_level", "open"),
+        "city_status": city_labels.get(match_result.city_match.get("match_level", "open"), "待判断"),
     }
-

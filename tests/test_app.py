@@ -1,4 +1,6 @@
 """测试主应用的数据处理和会话管理"""
+from contextlib import nullcontext
+
 import pytest
 from app import (
     init_session_state,
@@ -111,3 +113,45 @@ def test_build_top_match_insights_extracts_reasoning():
     assert insights["score"] == "74.0"
     assert insights["major_relevant"] is True
     assert "学历满足岗位门槛" in insights["reasons"]
+
+
+def test_regenerate_explanation_calls_ai_and_keeps_job_ranking(monkeypatch):
+    """“重新生成解读”必须请求 AI，但不能重新计算或替换岗位排序。"""
+    import app
+
+    result = MatchResult(job={"id": "a", "title": "岗位 A"}, score=80)
+    state = {
+        "profile": {"name": "测试", "skills": ["Python"]},
+        "matched_jobs": [result],
+        "selected_job_id": "a",
+        "chat_history": [{"role": "assistant", "content": "旧解读"}],
+        "analysis_cache": {"old": "结果"},
+        "processing": False,
+        "processing_kind": None,
+    }
+    calls = []
+    original_state = app.st.session_state
+    original_rerun = app.st.rerun
+    original_spinner = app.st.spinner
+    original_stream = app.chat_with_ai_stream
+    monkeypatch.setattr(app.st, "session_state", state)
+    monkeypatch.setattr(app.st, "rerun", lambda: None)
+    monkeypatch.setattr(app.st, "spinner", lambda *args, **kwargs: nullcontext())
+
+    def fake_stream(*args, **kwargs):
+        calls.append((args, kwargs))
+        return iter(["新的", "解读"])
+
+    monkeypatch.setattr(app, "chat_with_ai_stream", fake_stream)
+    try:
+        app._regenerate_explanation()
+    finally:
+        app.st.session_state = original_state
+        app.st.rerun = original_rerun
+        app.st.spinner = original_spinner
+        app.chat_with_ai_stream = original_stream
+
+    assert len(calls) == 1
+    assert state["chat_history"] == [{"role": "assistant", "content": "新的解读", "label": "岗位匹配解读"}]
+    assert state["matched_jobs"] == [result]
+    assert state["analysis_cache"] == {}

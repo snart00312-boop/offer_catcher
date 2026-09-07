@@ -20,6 +20,7 @@ __pycache__/
 
 # 本地烟测日志
 streamlit-*.log
+localtunnel*.log
 
 # 系统文件
 Thumbs.db
