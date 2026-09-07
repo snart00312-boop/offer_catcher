@@ -114,6 +114,11 @@ def load_css() -> str:
     .job-detail { padding: 1.25rem 1.35rem; border: 1px solid var(--oc-line); border-radius: 16px; background: var(--oc-surface); box-shadow: var(--oc-shadow); }
     .job-detail h2 { margin: .15rem 0 .2rem; color: var(--oc-ink); font-size: 1.55rem; }
     .detail-company { margin: 0; color: var(--oc-muted); font-size: .82rem; }
+    .detail-meta-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .45rem; margin-top: .85rem; }
+    .detail-meta-grid div { min-width: 0; padding: .55rem .62rem; border-radius: 10px; background: var(--oc-surface-soft); }
+    .detail-meta-grid span, .detail-meta-grid strong { display: block; overflow-wrap: anywhere; }
+    .detail-meta-grid span { color: var(--oc-muted); font-size: .63rem; }
+    .detail-meta-grid strong { margin-top: .2rem; color: var(--oc-ink); font-size: .74rem; line-height: 1.35; }
     .detail-score { display: flex; align-items: center; gap: .65rem; margin: 1rem 0; padding: .78rem .85rem; border-radius: 12px; background: var(--oc-mint); color: var(--oc-teal-deep); }
     .detail-score strong { font-size: 2.15rem; line-height: 1; }
     .detail-score span { font-size: .75rem; line-height: 1.35; }
@@ -123,6 +128,14 @@ def load_css() -> str:
     .detail-columns p, .detail-columns li, .detail-description p { color: var(--oc-muted); font-size: .78rem; line-height: 1.6; }
     .detail-columns ul { margin: 0; padding-left: 1rem; }
     .detail-description { margin-top: 1rem; padding-top: .85rem; border-top: 1px solid var(--oc-line); }
+    .jd-section { margin-top: 1rem; padding-top: .85rem; border-top: 1px solid var(--oc-line); }
+    .jd-section h4 { margin: 0 0 .42rem; color: var(--oc-ink); font-size: .83rem; }
+    .jd-copy { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .jd-list { margin: 0; padding-left: 1.1rem; }
+    .jd-list li { margin: .25rem 0; }
+    .jd-tags { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .jd-tags span { border-radius: 999px; padding: .28rem .55rem; background: var(--oc-mint); color: var(--oc-teal-deep); font-size: .7rem; font-weight: 700; }
+    .jd-tags em { color: var(--oc-muted); font-size: .76rem; font-style: normal; }
     .match-board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .6fr); gap: .8rem; margin: 1rem 0 .9rem; }
     .top-match-panel, .signal-panel { padding: 1rem; border: 1px solid var(--oc-line); border-radius: 14px; background: #fff; }
     .top-match-panel h3, .signal-panel h3 { margin: 0 0 .3rem; color: var(--oc-ink); font-size: 1rem; }
@@ -153,6 +166,7 @@ def load_css() -> str:
 
     @media (prefers-reduced-motion: reduce) { .oc-reveal, .job-card, .stButton button, .stFormSubmitButton button { animation: none; transition: none; } }
     @media (max-width: 900px) { .block-container { padding: 1.35rem 1.2rem 2.8rem; } .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .upload-card { align-items: flex-start; flex-wrap: wrap; } .upload-meta { margin-left: 0; } }
-    @media (max-width: 680px) { .app-header, .header-pills { align-items: flex-start; flex-direction: column; } .header-pills { justify-content: flex-start; } .stepper { gap: .35rem; margin-bottom: 1.5rem; } .step-item { font-size: .68rem; } .step-item strong { display: none; } .step-line { max-width: none; } .hero-copy h2 { font-size: 2.1rem; } .upload-card { padding: .95rem; } .summary-grid, .detail-columns, .match-board { grid-template-columns: 1fr; } .job-detail { padding: 1rem; } .stButton button, .stFormSubmitButton button { min-height: 2.9rem; } }
+    @media (max-width: 900px) { .detail-meta-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 680px) { .app-header, .header-pills { align-items: flex-start; flex-direction: column; } .header-pills { justify-content: flex-start; } .stepper { gap: .35rem; margin-bottom: 1.5rem; } .step-item { font-size: .68rem; } .step-item strong { display: none; } .step-line { max-width: none; } .hero-copy h2 { font-size: 2.1rem; } .upload-card { padding: .95rem; } .summary-grid, .detail-columns, .match-board, .detail-meta-grid { grid-template-columns: 1fr; } .job-detail { padding: 1rem; } .stButton button, .stFormSubmitButton button { min-height: 2.9rem; } }
     @media (max-width: 390px) { .block-container { padding-left: .8rem; padding-right: .8rem; } .brand-mark { width: 40px; height: 40px; } .app-header h1 { font-size: 1.45rem; } }
 </style>"""

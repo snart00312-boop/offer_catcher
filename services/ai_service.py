@@ -11,6 +11,7 @@ import os
 import re
 import time
 from collections.abc import Generator, Iterable
+from functools import lru_cache
 from pathlib import Path
 
 import httpx
@@ -20,6 +21,7 @@ from openai import OpenAI
 _DEFAULT_API_KEY = ""
 _DEFAULT_BASE_URL = "https://llm-xzld0nked9gxsskh.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
 _DEFAULT_MODEL = "qwen3.8-27b"
+_AI_TIMEOUT_SECONDS = 20.0
 _DOTENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 _AI_SECRET_SECTIONS = ("ai", "bailian", "dashscope", "glm", "zhipuai")
 _OPENAI_SECRET_SECTIONS = ("openai",)
@@ -159,22 +161,27 @@ def _get_ai_config() -> dict:
     return {"api_key": api_key, "base_url": base_url, "model": model}
 
 
-def _get_client():
-    config = _get_ai_config()
+@lru_cache(maxsize=8)
+def _build_client(api_key: str, base_url: str):
     # Some DashScope-compatible endpoints publish an unreachable AAAA record.
     # Binding the transport to an IPv4 address keeps the OpenAI-compatible
     # client reliable on hosts where IPv6 routing is unavailable.
     http_client = httpx.Client(
         transport=httpx.HTTPTransport(local_address="0.0.0.0"),
-        timeout=35.0,
+        timeout=httpx.Timeout(_AI_TIMEOUT_SECONDS, connect=5.0),
         follow_redirects=True,
     )
     return OpenAI(
-        api_key=config["api_key"],
-        base_url=config["base_url"],
-        timeout=35.0,
+        api_key=api_key,
+        base_url=base_url,
+        timeout=_AI_TIMEOUT_SECONDS,
         http_client=http_client,
     )
+
+
+def _get_client():
+    config = _get_ai_config()
+    return _build_client(config["api_key"], config["base_url"])
 
 
 def _profile_lines(student_profile: dict) -> str:
@@ -243,7 +250,7 @@ def build_matching_prompt(student_profile: dict, matched_jobs: list) -> str:
 {_profile_lines(student_profile)}
 
 【程序匹配结果】
-{_job_text(matched_jobs)}
+{_job_text(matched_jobs, limit=5)}
 
 规则匹配分、顺序和岗位名称以程序结果为准，不要重新编造分数或交换排序。请按以下格式输出：
 ### 匹配推荐结果
@@ -302,7 +309,7 @@ def build_chat_prompt(student_profile: dict, job_context: dict | None, user_mess
 {_job_text([selected] if selected else [], limit=1)}
 
 【可见岗位清单】
-{_job_text(matched_jobs, limit=10)}
+{_job_text(matched_jobs, limit=5)}
 
 【最近对话】
 {history_text or '暂无'}

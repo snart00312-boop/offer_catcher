@@ -47,6 +47,26 @@ def _esc(value: object) -> str:
     return html.escape(str(value or ""), quote=True)
 
 
+def _list_values(value: object) -> list[str]:
+    """Normalize a JD field into clean, displayable lines."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        values = value.splitlines() or [value]
+    elif isinstance(value, (list, tuple, set)):
+        values = list(value)
+    else:
+        values = [value]
+    return [str(item).strip() for item in values if str(item).strip()]
+
+
+def _bullet_html(items: object, empty: str = "暂无") -> str:
+    values = _list_values(items)
+    if not values:
+        return f"<li>{_esc(empty)}</li>"
+    return "".join(f"<li>{_esc(item)}</li>" for item in values)
+
+
 def render_brand_header(subtitle: bool = True):
     """Render the compact OC brand lockup."""
     compact = " compact" if not subtitle else ""
@@ -260,8 +280,34 @@ def render_job_detail(result):
     matched = result.skill_match.get("matched_skills", [])
     missing = result.skill_match.get("missing_skills", [])
     reasons = result.reasons or ["规则匹配结果已生成"]
+    description = str(job.get("description") or "暂无岗位描述").strip()
+    requirements = _list_values(job.get("requirements"))
+    preferred_skills = _list_values(job.get("preferred_skills"))
+    target_majors = _list_values(job.get("target_majors"))
     st.markdown(
-        f"""<section class="job-detail"><div class="card-kicker">岗位详情 · 内置岗位库</div><h2>{_esc(job.get('title', '未命名岗位'))}</h2><p class="detail-company">{_esc(job.get('company', '未标注'))} · {_esc(job.get('location', '未标注'))} · {_esc(job.get('salary_range', '面议'))}</p><div class="detail-score"><strong>{result.score:.1f}</strong><span>规则匹配参考分<br><small>{_esc(result.recommendation_level)}</small></span></div><div class="detail-columns"><div><h4>匹配依据</h4><ul>{''.join(f'<li>{_esc(reason)}</li>' for reason in reasons)}</ul></div><div><h4>技能信号</h4><p><b>已覆盖：</b>{_esc('、'.join(matched) or '暂无')}</p><p><b>待补充：</b>{_esc('、'.join(missing) or '暂无明显缺口')}</p><p><b>学历要求：</b>{_esc(job.get('education_required', '不限'))}</p></div></div><div class="detail-description"><h4>岗位描述</h4><p>{_esc(job.get('description', '暂无岗位描述'))}</p></div></section>""",
+        f"""<section class="job-detail">
+            <div class="card-kicker">完整岗位 JD · 内置岗位库</div>
+            <h2>{_esc(job.get('title', '未命名岗位'))}</h2>
+            <p class="detail-company">{_esc(job.get('company', '未标注'))}</p>
+            <div class="detail-meta-grid">
+                <div><span>工作地点</span><strong>{_esc(job.get('location', '未标注'))}</strong></div>
+                <div><span>薪资范围</span><strong>{_esc(job.get('salary_range', '面议'))}</strong></div>
+                <div><span>岗位类型</span><strong>{_esc(job.get('job_type', '未标注'))}</strong></div>
+                <div><span>行业</span><strong>{_esc(job.get('industry', '未标注'))}</strong></div>
+                <div><span>学历要求</span><strong>{_esc(job.get('education_required', '不限'))}</strong></div>
+            </div>
+            <div class="detail-score"><strong>{result.score:.1f}</strong><span>规则匹配参考分<br><small>{_esc(result.recommendation_level)}</small></span></div>
+            <div class="detail-columns">
+                <div><h4>匹配依据</h4><ul>{''.join(f'<li>{_esc(reason)}</li>' for reason in reasons)}</ul></div>
+                <div><h4>技能信号</h4><p><b>已覆盖：</b>{_esc('、'.join(matched) or '暂无')}</p><p><b>待补充：</b>{_esc('、'.join(missing) or '暂无明显缺口')}</p></div>
+            </div>
+            <div class="jd-section"><h4>岗位职责 / 工作内容</h4><p class="jd-copy">{_esc(description)}</p></div>
+            <div class="detail-columns jd-columns">
+                <div class="jd-section"><h4>任职要求</h4><ul class="jd-list">{_bullet_html(requirements)}</ul></div>
+                <div class="jd-section"><h4>加分项</h4><ul class="jd-list">{_bullet_html(preferred_skills)}</ul></div>
+            </div>
+            <div class="jd-section"><h4>适配专业</h4><div class="jd-tags">{''.join(f'<span>{_esc(major)}</span>' for major in target_majors) or '<em>未指定</em>'}</div></div>
+        </section>""",
         unsafe_allow_html=True,
     )
 

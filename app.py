@@ -340,7 +340,7 @@ def _render_start_actions() -> None:
 
 
 def _render_start_page() -> None:
-    st.markdown(load_css(), unsafe_allow_html=True)
+    st.html(load_css())
     render_brand_header()
     render_stepper("start")
     render_start_intro()
@@ -359,7 +359,7 @@ def _render_start_page() -> None:
 
 def _render_review_page() -> None:
     """Render the document review as a focused second step."""
-    st.markdown(load_css(), unsafe_allow_html=True)
+    st.html(load_css())
     render_brand_header(subtitle=False)
     render_stepper("review")
     st.markdown('<section class="review-page-intro"><div class="card-kicker">STEP 02 · REVIEW</div><h2>确认这份简历，再开始匹配</h2><p>字段只在当前会话中编辑。补齐带 * 的项目后，岗位排序才会使用这份画像。</p></section>', unsafe_allow_html=True)
@@ -411,7 +411,7 @@ def _refresh():
 
 def render_chat_page():
     """Render the new job workspace; ``chat`` remains a compatibility alias."""
-    st.markdown(load_css(), unsafe_allow_html=True)
+    st.html(load_css())
     profile = st.session_state.get("profile", {})
     matched_jobs = st.session_state.get("matched_jobs", [])
     render_brand_header(subtitle=False)

@@ -53,6 +53,12 @@ OPENAI_BASE_URL=https://api.example.com/v1
 
 Streamlit Cloud deployments should store these values in app secrets rather than in files. Supported secret layouts include top-level variables and grouped sections such as `[ai]`, `[dashscope]`, `[bailian]`, or `[openai]`.
 
+The default configuration is the `qwen3.8-27b` compatible endpoint supplied for
+this demo. The client reuses its HTTP connection, keeps the network timeout at
+20 seconds, and sends only the five highest-ranked roles in explanation/chat
+context so the first response arrives sooner. Full job details remain local in
+the workspace and do not require an AI request.
+
 ## GitHub / Streamlit Community Cloud Redeploy
 
 This working copy is connected to `https://github.com/snart00312-boop/offer_catcher.git`.

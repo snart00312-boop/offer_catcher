@@ -41,4 +41,7 @@ def test_chat_page_renders_deterministic_recommendations_without_ai_call():
     rendered_markdown = "\n".join(item.value for item in app.markdown)
     assert "综合匹配度" in rendered_markdown
     assert "关键判断" in rendered_markdown
-
+    assert "完整岗位 JD" in rendered_markdown
+    assert "任职要求" in rendered_markdown
+    assert "加分项" in rendered_markdown
+    assert "适配专业" in rendered_markdown
